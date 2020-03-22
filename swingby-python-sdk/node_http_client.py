@@ -2,30 +2,49 @@
 This module contains classes for interacting with the Swingby network via REST
 """
 
-import asyncio
-import aiohttp
+import requests
 import time
 import json
 
-def default_send_get():
-    pass
+def default_send_get(endpoint, query={}):
+    """
+    Sends a get request
+    """
+    r = requests.get(url=endpoint, params=query)
+    body = r.json()
+    if r.status_code is 429:
+        raise Exception("GET {} failed with status code {} - Err: rate limit exception".format(endpoint, r.status_code))
+    if r.status_code < 200 or r.status_code > 299:
+        raise Exception("GET {} failed with status code {} - Err: {}".format(endpoint, r.status_code, body.get('message', 'unknown')))
+    return body
 
-def default_send_post():
-    pass
+def default_send_post(endpoint, query={}, body={}):
+    """
+    Sends a post request in application/json format
+    """
+    r = requests.post(endpoint, params=query, json=body)
+    res = r.json()
+    if r.status_code is 429:
+        raise Exception("GET {} failed with status code {} - Err: rate limit exception".format(endpoint, r.status_code))
+    if r.status_code < 200 or r.status_code > 299:
+        raise Exception("GET {} failed with status code {} - Err: {}".format(endpoint, r.status_code, res.get('message', 'unknown')))
+    return res
 
 class NodeHttpClient:
     """
-    BFX rest interface contains functions which are used to interact with both the public
-    and private Bitfinex http api's.
-    To use the private api you have to set the API_KEY and API_SECRET variables to your
-    api key.
+    NodeHttpClient includes functions for interacting with the Swingby network. For use simply initiate an instance of the NodeHttpClient
+    With a url pointing to either your node or a Swingby hosted node. Example:
+
+    node = NodeHttpClient("https://testnet-node.swingby.network")
     """
 
-    def __init__(self, url, sendGetRequestFunc=default_send_get, sendPostRequestFunc=default_send_post, loop=None *args, **kwargs):
-        self.loop = loop or asyncio.get_event_loop()
+    def __init__(self, url, sendGetRequestFunc=default_send_get, sendPostRequestFunc=default_send_post, *args, **kwargs):
         self.url = url
         self.get = sendGetRequestFunc
         self.post = sendPostRequestFunc
+
+    def _url(self, path):
+        return "{}/{}".format(self.url, path)
 
     def create_float(self):
         """
@@ -39,7 +58,7 @@ class NodeHttpClient:
         @return string float.hash
         @return string float.nonce
         """
-        pass
+        raise Exception("create_float function not implemented.")
     
     def query_floats(self):
         """
@@ -58,7 +77,7 @@ class NodeHttpClient:
         @param string OrHash - Hash of the outbound transaction (OR match)
         @param string OrInAddress - Swap inbound address (OR match)
         """
-        pass
+        raise Exception("query_floats function not implemented.")
 
     def get_tss_addresses(self):
         """
@@ -70,9 +89,9 @@ class NodeHttpClient:
         @return string addresses[n].address
         @return string addresses[n].currency
         """
-        pass
+        return self.get(self._url("api/v1/addresses"))
 
-    def get_peers(self):
+    def get_peers(self, node_type="normal"):
         """
         Get a list of peers connected to the node
         https://testnet-node.swingby.network/docs#operation/getPeers
@@ -83,7 +102,7 @@ class NodeHttpClient:
         # Returns
         @return array peers
         """
-        pass
+        return self.get(self._url("api/v1/peers"), params={ "type": node_type })
 
     def get_stakes(self):
         """
@@ -98,7 +117,7 @@ class NodeHttpClient:
         @return integer stakes.stakeTime
         @return boolean stakes.stakeValid
         """
-        pass
+        return self.get(self._url("api/v1/stakes"))
 
     def get_status(self):
         """
@@ -110,9 +129,9 @@ class NodeHttpClient:
         @return dict NodeStatus.nodeInfo
         @return dict NodeStatus.swapInfo
         """
-        pass
+        return self.get(self._url("api/v1/status"))
 
-    def calculate_swap(self):
+    def calculate_swap(self, address_to, amount, currency_from, currency_to, **kwargs):
         """
         Calculates the actual amount that the user will receive and fees for a given swap
         https://testnet-node.swingby.network/docs#operation/calculateSwap
@@ -132,9 +151,16 @@ class NodeHttpClient:
         @return string swap.send_amount
         @return integer swap.nonce
         """
-        pass
+        body = {
+            "address_to": address_to,
+            "amount": amount,
+            "currency_from": currency_from,
+            "currency_to": currency_to,
+            **kwargs
+        }
+        return self.post(self._url("api/v1/swaps/calculate"), query={}, body=body)
 
-    def create_swap(self):
+    def create_swap(self, address_to, amount, currency_from, currency_to, nonce, **kwargs):
         """
         Creates a swap record
         https://testnet-node.swingby.network/docs#operation/createSwap
@@ -155,9 +181,17 @@ class NodeHttpClient:
         @return string swap.currency_out
         @return integer swap.timestamp
         """
-        pass
+        body = {
+            "address_to": address_to,
+            "amount": amount,
+            "currency_from": currency_from,
+            "currency_to": currency_to,
+            "nonce": nonce,
+            **kwargs
+        }
+        return self.post(self._url("api/v1/swaps/create"), query={}, body=body)
 
-    def swap(self):
+    def swap(self, address_to, amount, currency_from, currency_to, **kwargs):
         """
         Calculates PoW and creates a swap record
 
@@ -177,7 +211,9 @@ class NodeHttpClient:
         @return integer swap.timestamp
         @return dict swap.calc - response from calculate_swap
         """
-        pass
+        calc = self.calculate_swap(address_to, amount, currency_from, currency_to, **kwargs)
+        swap = self.create_swap(address_to, calc['send_amount'], currency_from, currency_to, calc['nonce'], **kwargs)
+        return { **swap, "cal": calc }
 
     def get_swap_fees(self):
         """
@@ -190,9 +226,11 @@ class NodeHttpClient:
         @return string fees[n].currency
         @return string fees[n].minerFee
         """
-        pass
+        return self.get(self._url("api/v1/swaps/fees"))
 
-    def query_swaps(self):
+    def query_swaps(self, in_hash=None, out_hash=None, to_chain=None, from_chain=None, in_address=None,
+        out_address=None, status=None, page_size=None, page=None, sort=None, OR_in_hash=None,
+        OR_out_hash=None, **kwargs):
         """
         Query swaps
         https://testnet-node.swingby.network/docs#operation/queryTransactions
@@ -217,7 +255,32 @@ class NodeHttpClient:
         @return integer swaps.total
         @return dict swaps.items
         """
-        pass
+        params = { **kwargs }
+        if in_hash:
+            params["in_hash"] = in_hash
+        if out_hash:
+            params["out_hash"] = out_hash
+        if to_chain:
+            params["to_chain"] = to_chain
+        if from_chain:
+            params["from_chain"] = from_chain
+        if in_address:
+            params["in_address"] = in_address
+        if out_address:
+            params["out_address"] = out_address
+        if status:
+            params["status"] = status
+        if page_size:
+            params["page_size"] = page_size
+        if page:
+            params["page"] = page
+        if sort:
+            params["sort"] = sort
+        if OR_in_hash:
+            params["OR_in_hash"] = OR_in_hash
+        if OR_out_hash:
+            params["OR_out_hash"] = OR_out_hash
+        return self.get(self._url("api/v1/swaps/query"), query=params)
 
     def get_swap_stats(self):
         """
@@ -245,4 +308,4 @@ class NodeHttpClient:
         @return array stats.rewards24hrVolume
         @return number stats.rewardsVolume
         """
-        pass
+        return self.get(self._url("api/v1/swaps/stats"))
