@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="swingby-python-sdk", # Replace with your own username
+    name="swingby", # Replace with your own username
     version="1.0.0",
     author="Jacob Samuel",
     author_email="jacob@swingby.network",
