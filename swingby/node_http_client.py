@@ -59,7 +59,7 @@ class NodeHttpClient:
         @return string float.nonce
         """
         raise Exception("create_float function not implemented.")
-    
+
     def query_floats(self):
         """
         Query all float records
@@ -102,7 +102,7 @@ class NodeHttpClient:
         # Returns
         @return array peers
         """
-        return self.get(self._url("api/v1/peers"), params={ "type": node_type })
+        return self.get(self._url("api/v1/peers"), query={ "type": node_type })
 
     def get_stakes(self):
         """
@@ -213,7 +213,7 @@ class NodeHttpClient:
         """
         calc = self.calculate_swap(address_to, amount, currency_from, currency_to, **kwargs)
         swap = self.create_swap(address_to, calc['send_amount'], currency_from, currency_to, calc['nonce'], **kwargs)
-        return { **swap, "cal": calc }
+        return { **swap, "calc": calc }
 
     def get_swap_fees(self):
         """
@@ -248,7 +248,7 @@ class NodeHttpClient:
         @param integer sort
         @param string OR_in_hash
         @param string OR_out_hash
-        
+
         # Returns
         @return dict swaps
         @return integer swaps.itemCount
@@ -284,7 +284,7 @@ class NodeHttpClient:
 
     def get_swap_stats(self):
         """
-        Get performance statistics 
+        Get performance statistics
         https://testnet-node.swingby.network/docs#operation/getSwapStats
 
         # Returns
