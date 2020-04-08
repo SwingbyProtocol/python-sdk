@@ -2,33 +2,10 @@
 This module contains classes for interacting with the Swingby network via REST
 """
 
-import requests
 import time
 import json
 
-def default_send_get(endpoint, query={}):
-    """
-    Sends a get request
-    """
-    r = requests.get(url=endpoint, params=query)
-    body = r.json()
-    if r.status_code is 429:
-        raise Exception("GET {} failed with status code {} - Err: rate limit exception".format(endpoint, r.status_code))
-    if r.status_code < 200 or r.status_code > 299:
-        raise Exception("GET {} failed with status code {} - Err: {}".format(endpoint, r.status_code, body.get('message', 'unknown')))
-    return body
-
-def default_send_post(endpoint, query={}, body={}):
-    """
-    Sends a post request in application/json format
-    """
-    r = requests.post(endpoint, params=query, json=body)
-    res = r.json()
-    if r.status_code is 429:
-        raise Exception("GET {} failed with status code {} - Err: rate limit exception".format(endpoint, r.status_code))
-    if r.status_code < 200 or r.status_code > 299:
-        raise Exception("GET {} failed with status code {} - Err: {}".format(endpoint, r.status_code, res.get('message', 'unknown')))
-    return res
+from .utils import default_send_get, default_send_post
 
 class NodeHttpClient:
     """
