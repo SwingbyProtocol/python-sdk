@@ -68,7 +68,7 @@ class StakesHttpClient:
         # Returns
         @return integer status
         """
-        res = self.get(self._url("v1/floats"))
+        res = self.get(self._url("v1/platform_status"))
         return res['status']
 
     def get_rewards_leaderboard(self, memo=None, page=1, page_size=25):
