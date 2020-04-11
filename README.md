@@ -43,7 +43,9 @@ for more examples on how to retrieve data from a node and interact with the Swin
 
 ## Docs
 
-For in depth documentation on our python SDK, please [see `docs/node_http_client.md`](/docs/node_http_client.md).
+* Documentation for our NodeSdk [here `docs/node_http_client.md`](/docs/node_http_client.md)
+* Documentation for our StakesApiSdk [here `docs/stakes_http_client.md`](/docs/stakes_http_client.md)
+
 For documentation on our node API, please visit [testnet-node.swingby.network/docs](https://testnet-node.swingby.network/).
 
 ## Useful links
