@@ -286,3 +286,14 @@ class NodeHttpClient:
         @return number stats.rewardsVolume
         """
         return self.get(self._url("api/v1/swaps/stats"))
+
+    def get_kv_store(self):
+        """
+        Get the nodes kv store. Only availbale if the node is in testnet mode
+        https://testnet-node.swingby.network/docs#operation/getKVStore
+
+        # Returns
+        @return dict kvstore
+        """
+        kv_store = self.get(self._url("/api/v1/debug/kvstore"))
+        return json.loads(kv_store)
